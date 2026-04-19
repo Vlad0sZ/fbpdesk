@@ -1369,7 +1369,7 @@ class _FileManagerViewState extends State<FileManagerView> {
   bool _checkDoubleClick(Entry entry) {
     final current = DateTime.now().millisecondsSinceEpoch;
     final elapsed = current - _lastClickTime;
-    _lastClickTime = current;
+    _lastClickTime = current.toDouble();
     if (_lastClickEntry == entry) {
       if (elapsed < bind.getDoubleClickTime()) {
         return true;

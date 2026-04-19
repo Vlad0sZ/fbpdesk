@@ -1,0 +1,12 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:20128/v1",
+    "ANTHROPIC_AUTH_TOKEN": "sk-644584c39c32f024-4032d2-f0078bdf",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_MODEL": "kr/claude-sonnet-4.5",
+    "ANTHROPIC_SMALL_FAST_MODEL": "kr/claude-sonnet-4.5",
+    "CLAUDE_CIDE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000"
+  }
+}
