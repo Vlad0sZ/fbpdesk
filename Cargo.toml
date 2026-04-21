@@ -5,7 +5,7 @@ authors = ["rustdesk <info@rustdesk.com>", "FBP <info@fbp.ru>"]
 edition = "2021"
 build= "build.rs"
 description = "FBP Remote Desktop Client"
-default-run = "rustdesk"
+default-run = "FBPDesktop"
 rust-version = "1.75"
 
 [lib]
