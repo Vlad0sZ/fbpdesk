@@ -24,6 +24,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import 'package:flutter_hbb/custom/device_activation.dart';
+
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/login.dart';
 
@@ -77,9 +79,9 @@ class DesktopSettingPage extends StatefulWidget {
     if (!isWeb && !bind.isIncomingOnly() && bind.pluginFeatureIsEnabled())
       SettingsTabKey.plugin,
     if (!bind.isDisableAccount()) SettingsTabKey.account,
-    if (isWindows &&
-        bind.mainGetBuildinOption(key: kOptionHideRemotePrinterSetting) != 'Y')
-      SettingsTabKey.printer,
+    // if (isWindows &&
+    //     bind.mainGetBuildinOption(key: kOptionHideRemotePrinterSetting) != 'Y')
+    //   SettingsTabKey.printer,
     SettingsTabKey.about,
   ];
 
@@ -2018,7 +2020,10 @@ class _AccountState extends State<_Account> {
     return ListView(
       controller: scrollController,
       children: [
-        _Card(title: 'Account', children: [accountAction(), useInfo()]),
+        // _Card(title: 'Account', children: [accountAction(), useInfo()]),
+        _Card(title: 'Account', children: [
+          DeviceActivationPage().marginOnly(left: _kContentHMargin)
+        ])
       ],
     ).marginOnly(bottom: _kListViewBottomMargin);
   }
@@ -2389,7 +2394,7 @@ class _AboutState extends State<_About> {
                         .marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com/privacy.html');
+                    launchUrlString(kPrivacyUrl);
                   },
                   child: Text(
                     translate('Privacy Statement'),
@@ -2397,7 +2402,7 @@ class _AboutState extends State<_About> {
                   ).marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com');
+                    launchUrlString(kWebsiteUrl);
                   },
                   child: Text(
                     translate('Website'),
