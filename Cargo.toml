@@ -2,7 +2,7 @@
 name = "FBPDesktop"
 version = "1.4.6"
 authors = ["rustdesk <info@rustdesk.com>", "FBP <info@fbp.ru>"]
-edition = "2026"
+edition = "2021"
 build= "build.rs"
 description = "FBP Remote Desktop Client"
 default-run = "rustdesk"
