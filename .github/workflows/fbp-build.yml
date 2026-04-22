@@ -7,9 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-fbp:
-    uses: ./.github/workflows/flutter-build.yml
+  build-fbp-windows:
+    uses: ./.github/workflows/fbp-windows-build.yml
     secrets: inherit
-    with:
-      upload-artifact: true
-      upload-tag: "fbp-build"

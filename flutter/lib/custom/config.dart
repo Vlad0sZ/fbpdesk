@@ -1,4 +1,4 @@
-import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/models/platform_model.dart';
 
 /// Configuration keys for custom client
 class CustomConfig {
