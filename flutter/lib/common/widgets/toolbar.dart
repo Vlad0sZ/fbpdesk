@@ -228,7 +228,7 @@ List<TTextMenu> toolbarControls(BuildContext context, String id, FFI ffi) {
       (pi.platform == kPeerPlatformLinux || pi.sasEnabled)) {
     v.add(
       TTextMenu(
-          child: Text('${translate("Insert Ctrl + Alt + Del")}'),
+          child: Text(translate("Insert Ctrl + Alt + Del")),
           onPressed: () => bind.sessionCtrlAltDel(sessionId: sessionId)),
     );
   }
@@ -540,7 +540,7 @@ Future<List<TToggleMenu>> toolbarCursor(
           await bind.sessionToggleOption(sessionId: sessionId, value: option);
           value = bind.sessionGetToggleOptionSync(
               sessionId: sessionId, arg: option);
-          showCursorLockState.value = value;
+          showCursorLockState.value = value ?? false;
           if (!showCursorEnabled) {
             await bind.sessionToggleOption(
                 sessionId: sessionId, value: showCursorOption);
