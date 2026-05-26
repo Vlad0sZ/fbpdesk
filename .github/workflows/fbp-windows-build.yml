@@ -11,7 +11,6 @@ env:
   RUST_VERSION: "1.75"
   LLVM_VERSION: "15.0.6"
   FLUTTER_VERSION: "3.24.5"
-  TAG_NAME: "fbp-build"
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   VERSION: "1.4.6"
@@ -197,7 +196,7 @@ jobs:
           python3 ./generate.py -f ../../rustdesk
           popd
           mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/fbpdesk-${{ env.VERSION }}-x86_64.exe
 
       - name: Sign rustdesk self-extracted file
         if: env.SIGN_BASE_URL != '-2'
@@ -205,10 +204,8 @@ jobs:
         run: |
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
 
-      - name: Publish Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload portable executable
+        uses: actions/upload-artifact@master
         with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            ./SignOutput/rustdesk-*.exe
+          name: fbpdesk-portable-windows-x86_64
+          path: SignOutput/fbpdesk-*.exe

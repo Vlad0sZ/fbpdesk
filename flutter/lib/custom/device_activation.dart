@@ -217,14 +217,6 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
                 ),
               )
             : SizedBox.shrink()),
-        SizedBox(height: 16),
-        Text(
-          'Your Device ID: ${bind.mainGetMyId()}',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey,
-          ),
-        ),
       ],
     );
   }
