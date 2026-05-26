@@ -1005,6 +1005,12 @@ pub fn get_app_name() -> String {
     hbb_common::config::APP_NAME.read().unwrap().clone()
 }
 
+pub fn init_fbp_app_name() {
+    if hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk") {
+        *hbb_common::config::APP_NAME.write().unwrap() = "FBPDesk".to_owned();
+    }
+}
+
 #[inline]
 pub fn is_rustdesk() -> bool {
     hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk")
@@ -2089,6 +2095,7 @@ pub fn load_custom_client() {
     }
     let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
     else {
+        init_fbp_app_name();
         return;
     };
     #[cfg(target_os = "macos")]
@@ -2097,9 +2104,12 @@ pub fn load_custom_client() {
     if path.is_file() {
         let Ok(data) = std::fs::read_to_string(&path) else {
             log::error!("Failed to read custom client config");
+            init_fbp_app_name();
             return;
         };
         read_custom_client(&data.trim());
+    } else {
+        init_fbp_app_name();
     }
 }
 
@@ -2250,6 +2260,7 @@ pub fn read_custom_client(config: &str) {
                 .insert(k, v.to_owned());
         };
     }
+    init_fbp_app_name();
 }
 
 #[inline]
