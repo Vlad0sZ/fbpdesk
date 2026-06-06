@@ -101,7 +101,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 50, 190, 166).withValues(alpha: .1),
+        color: Color.fromARGB(255, 50, 190, 166).withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: Color.fromARGB(255, 50, 190, 166),
