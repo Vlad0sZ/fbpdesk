@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/custom/activation_state.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/custom/config.dart';
+import 'package:flutter_hbb/utils/http_service.dart' as http;
 import 'package:get/get.dart';
-
-const kCommConfKeyDeviceState = 'device_activation_token';
 
 class DeviceActivationPage extends StatefulWidget {
   const DeviceActivationPage({Key? key}) : super(key: key);
@@ -14,14 +17,14 @@ class DeviceActivationPage extends StatefulWidget {
 
 class _DeviceActivationPageState extends State<DeviceActivationPage> {
   final _activationCodeController = TextEditingController();
-  final _isActivated = false.obs;
   final _isLoading = false.obs;
   final _errorMessage = ''.obs;
+  DeviceActivationState get _activation => DeviceActivationState.find;
 
   @override
   void initState() {
     super.initState();
-    _checkActivationStatus();
+    _activation.reload();
   }
 
   @override
@@ -30,17 +33,11 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
     super.dispose();
   }
 
-  /// Check if device is already activated by reading token from local config
-  void _checkActivationStatus() {
-    final token = bind.mainGetLocalOption(key: kCommConfKeyDeviceState);
-    _isActivated.value = token.isNotEmpty;
-  }
-
   /// Submit activation code to backend and save token
   Future<void> _submitActivationCode() async {
     final code = _activationCodeController.text.trim();
     if (code.isEmpty) {
-      _errorMessage.value = 'Please enter activation code';
+      _errorMessage.value = translate("activation_enter_empty_error");
       return;
     }
 
@@ -50,63 +47,51 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
     try {
       // Get API URL from config
       final apiUrl = CustomConfig.getActivationApiUrl();
-      final deviceId = bind.mainGetMyId();
+      final rustDeskId = bind.mainGetMyId();
 
-      // TODO: Uncomment when backend is ready
-      // final response = await http.post(
-      //   Uri.parse('$apiUrl/api/activate'),
-      //   headers: {'Content-Type': 'application/json'},
-      //   body: jsonEncode({'code': code, 'device_id': deviceId}),
-      // );
-      //
-      // if (response.statusCode == 200) {
-      //   final data = jsonDecode(response.body);
-      //   final token = data['token'];
-      //   await bind.mainSetLocalOption(
-      //     key: kCommConfKeyDeviceState,
-      //     value: token,
-      //   );
-      //   _isActivated.value = true;
-      //   _activationCodeController.clear();
-      // } else {
-      //   _errorMessage.value = 'Invalid activation code';
-      // }
-
-      // Mock activation for testing (remove in production)
-      debugPrint('Activation API URL: $apiUrl');
-      debugPrint('Device ID: $deviceId');
-      debugPrint('Activation code: $code');
-
-      await Future.delayed(Duration(seconds: 1));
-      final mockToken = 'token_$code';
-
-      await bind.mainSetLocalOption(
-        key: kCommConfKeyDeviceState,
-        value: mockToken,
+      final response = await http.post(
+        Uri.parse('$apiUrl/api/activate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'code': code,
+          'hostname': 'hostname-here',
+          'macAddress': '00:00:00:00',
+          'rustdeskId': rustDeskId,
+          'rustdeskPassword': '123',
+          'osinfo': 'osinfo-here'
+        }),
       );
 
-      _isActivated.value = true;
-      _activationCodeController.clear();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+        final deviceId = data['deviceId'];
+
+        await _activation.save(deviceId: deviceId, token: token);
+        _activationCodeController.clear();
+      } else {
+        _errorMessage.value = 'Invalid activation code';
+      }
     } catch (e) {
-      _errorMessage.value = 'Activation failed: $e';
+      _errorMessage.value = translate("activation_enter_error") + e.toString();
     } finally {
       _isLoading.value = false;
     }
   }
 
   /// Deactivate device by removing token
-  Future<void> _deactivateDevice() async {
-    // TODO: Optionally notify backend about deactivation
-    await bind.mainSetLocalOption(
-      key: kCommConfKeyDeviceState,
-      value: '',
-    );
-    _isActivated.value = false;
-  }
+  // Future<void> _deactivateDevice() async {
+  //   // TODO: Optionally notify backend about deactivation
+  //   await bind.mainSetLocalOption(
+  //     key: kCommConfKeyDeviceState,
+  //     value: '',
+  //   );
+  //   _isActivated.value = false;
+  // }
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => _isActivated.value
+    return Obx(() => _activation.isActivated.value
         ? _buildActivatedView(context)
         : _buildActivationForm(context));
   }
@@ -116,7 +101,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 50, 190, 166).withOpacity(0.1),
+        color: Color.fromARGB(255, 50, 190, 166).withValues(alpha: .1),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: Color.fromARGB(255, 50, 190, 166),
@@ -135,7 +120,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
               ),
               SizedBox(width: 12),
               Text(
-                'Device is activated',
+                translate('activation_device_activated_title'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -145,18 +130,18 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
           ),
           SizedBox(height: 16),
           Text(
-            'Device ID: ${bind.mainGetMyId()}',
+            '${translate('activation_device_id')}${_activation.deviceId.value}',
             style: TextStyle(fontSize: 14),
           ),
           SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _deactivateDevice,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Deactivate Device'),
-          ),
+          // ElevatedButton(
+          //   onPressed: _deactivateDevice,
+          //   style: ElevatedButton.styleFrom(
+          //     backgroundColor: Colors.red,
+          //     foregroundColor: Colors.white,
+          //   ),
+          //   child: Text('Deactivate Device'),
+          // ),
         ],
       ),
     );
@@ -168,7 +153,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Enter activation code to link this device',
+          translate('activation_enter_title'),
           style: TextStyle(fontSize: 14),
         ),
         SizedBox(height: 16),
@@ -178,7 +163,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
               child: TextField(
                 controller: _activationCodeController,
                 decoration: InputDecoration(
-                  hintText: 'Activation code',
+                  hintText: translate('activation_enter_placeholder'),
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 12,
@@ -198,7 +183,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text('Activate'),
+                      : Text(translate('activation_enter_button')),
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(
                       horizontal: 24,

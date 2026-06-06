@@ -1009,6 +1009,13 @@ pub fn init_fbp_app_name() {
     if hbb_common::config::APP_NAME.read().unwrap().eq("RustDesk") {
         *hbb_common::config::APP_NAME.write().unwrap() = "FBPDesk".to_owned();
     }
+
+    use hbb_common::config::Config;
+    if Config::get_option("custom-rendezvous-server").is_empty() {
+
+        // TODO custom relay server is here
+        Config::set_option("custom-rendezvous-server".into(), "remote.fbpdesk.ru".into());
+    }
 }
 
 #[inline]

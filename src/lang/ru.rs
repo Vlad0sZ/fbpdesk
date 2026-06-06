@@ -579,7 +579,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("2FA code must be 6 digits.", "Код двухфакторной аутентификации должен состоять из 6 цифр."),
         ("Multiple Windows sessions found", "Обнаружено несколько сеансов Windows"),
         ("Please select the session you want to connect to", "Выберите сеанс, к которому хотите подключиться"),
-        ("powered_by_me", "Основано на FBPDesk"),
+        ("powered_by_me", "Основано на RustDesk"),
         ("outgoing_only_desk_tip", "Это специализированная версия.\nВы можете подключаться к другим устройствам, но другие устройства не могут подключиться к вашему."),
         ("preset_password_warning", "Это специализированная версия с предустановленным паролем. Любой, кто знает этот пароль, может получить полный контроль над вашим устройством. Если это для вас неожиданно, немедленно удалите данное программное обеспечение."),
         ("Security Alert", "Предупреждение о безопасности"),
@@ -743,5 +743,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Display Name", "Отображаемое имя"),
         ("password-hidden-tip", "Установлен постоянный пароль (скрытый)."),
         ("preset-password-in-use-tip", "Установленный пароль сейчас используется."),
+
+        ("activation_enter_title", "Введите код активации для регистрации этого устройства"),
+        ("activation_enter_placeholder", "Код активации в формате: XXX-XXX"),
+        ("activation_enter_button", "Активировать"),
+        ("activation_enter_empty_error", "Пожалуйста, введите код активации"),
+        ("activation_enter_error", "Не удалось активировать устройство: "),
+        ("activation_device_id", "ID устройства: "),
+        ("activation_device_activated_title", "Устройство активировано"),
+        ("activation_license_required", "Нужна активация устройства"),
     ].iter().cloned().collect();
 }

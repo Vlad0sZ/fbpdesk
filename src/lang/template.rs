@@ -743,5 +743,15 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Display Name", ""),
         ("password-hidden-tip", ""),
         ("preset-password-in-use-tip", ""),
+        
+        ("activation_enter_title", ""),
+        ("activation_enter_placeholder", ""),
+        ("activation_enter_button", ""),
+        ("activation_enter_empty_error", ""),
+        ("activation_enter_error", ""),
+        ("activation_device_id", ""),
+        ("activation_device_activated_title", ""),
+        ("activation_license_required", ""),
+
     ].iter().cloned().collect();
 }

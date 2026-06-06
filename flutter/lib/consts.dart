@@ -17,8 +17,8 @@ const kKeyLegacyMode = 'legacy';
 const kKeyMapMode = 'map';
 const kKeyTranslateMode = 'translate';
 
-const String kPrivacyUrl = 'https://remote.1c-fbp.ru/privacy';
-const String kWebsiteUrl = 'https://remote.1c-fbp.ru';
+const String kPrivacyUrl = 'https://fbpdesk.ru/privacy';
+const String kWebsiteUrl = 'https://fbpdesk.ru';
 
 const String kPlatformAdditionsIsWayland = "is_wayland";
 const String kPlatformAdditionsHeadless = "headless";

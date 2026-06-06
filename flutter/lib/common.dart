@@ -251,16 +251,16 @@ class MyTheme {
   MyTheme._();
 
   static const Color grayBg = Color(0xFFEFEFF2);
-  static const Color accent = Color(0xFF0071FF);
-  static const Color accent50 = Color(0x770071FF);
-  static const Color accent80 = Color(0xAA0071FF);
-  static const Color canvasColor = Color(0xFF212121);
-  static const Color border = Color(0xFFCCCCCC);
-  static const Color idColor = Color(0xFF00B6F0);
+  static const Color accent = Color(0xFFFFD400);
+  static const Color accent50 = Color(0x77FFD400);
+  static const Color accent80 = Color(0xAAFFD400);
+  static const Color canvasColor = Color(0xFF3B4143);
+  static const Color border = Color(0xFFDCE0E2);
+  static const Color idColor = Color(0xFFFFD400);
   static const Color darkGray = Color.fromARGB(255, 148, 148, 148);
   static const Color cmIdColor = Color(0xFF21790B);
   static const Color dark = Colors.black87;
-  static const Color button = Color(0xFF2C8CFF);
+  static const Color button = Color(0xFFFFD400);
   static const Color hoverBorder = Color(0xFF999999);
 
   // ListTile
@@ -3686,7 +3686,7 @@ Widget loadPowered(BuildContext context) {
     cursor: SystemMouseCursors.click,
     child: GestureDetector(
       onTap: () {
-        launchUrl(Uri.parse('https://rustdesk.com'));
+        launchUrl(Uri.parse('https://fbpdesk.ru'));
       },
       child: Opacity(
           opacity: 0.5,
