@@ -54,6 +54,7 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
     super.initState();
     _updateTimer = periodic_immediate(Duration(seconds: 1), () async {
       updateStatus();
+      updateWsStatus();
     });
   }
 
