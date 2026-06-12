@@ -2191,6 +2191,34 @@ pub fn main_get_mac() -> SyncReturn<String> {
     SyncReturn(crate::common::get_local_mac())
 }
 
+pub fn main_get_fbp_ws_status() -> SyncReturn<String> {
+    SyncReturn(fbp_ws_status_json())
+}
+
+pub fn main_send_fbp_ws_message(message: String) -> SyncReturn<bool> {
+    SyncReturn(fbp_ws_send_message(message))
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+fn fbp_ws_status_json() -> String {
+    crate::fbp::fbp_ws::status_json()
+}
+
+#[cfg(any(not(feature = "flutter"), target_os = "android", target_os = "ios"))]
+fn fbp_ws_status_json() -> String {
+    "{}".to_string()
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+fn fbp_ws_send_message(message: String) -> bool {
+    crate::fbp::fbp_ws::send_message(&message).is_ok()
+}
+
+#[cfg(any(not(feature = "flutter"), target_os = "android", target_os = "ios"))]
+fn fbp_ws_send_message(_message: String) -> bool {
+    false
+}
+
 // --------
 
 pub fn main_get_build_date() -> String {

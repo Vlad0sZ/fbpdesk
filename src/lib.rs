@@ -68,6 +68,9 @@ mod ui_session_interface;
 
 mod hbbs_http;
 
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+pub mod fbp;
+
 #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
 pub mod clipboard_file;
 

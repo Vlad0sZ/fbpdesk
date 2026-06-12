@@ -4,7 +4,18 @@ import 'package:get/get.dart';
 
 /// Settings widget for custom client configuration
 class CustomSettingsWidget extends StatefulWidget {
-  const CustomSettingsWidget({Key? key}) : super(key: key);
+  final Future<void> Function(String value) setValue;
+  final String Function() getValue;
+  final String Function() getDefaultValue;
+  final String title;
+
+  const CustomSettingsWidget({
+    Key? key,
+    required this.title,
+    required this.setValue,
+    required this.getValue,
+    required this.getDefaultValue,
+  }) : super(key: key);
 
   @override
   State<CustomSettingsWidget> createState() => _CustomSettingsWidgetState();
@@ -28,7 +39,7 @@ class _CustomSettingsWidgetState extends State<CustomSettingsWidget> {
   }
 
   void _loadCurrentUrl() {
-    _apiUrlController.text = CustomConfig.getActivationApiUrl();
+    _apiUrlController.text = widget.getValue();
   }
 
   Future<void> _saveUrl() async {
@@ -41,7 +52,7 @@ class _CustomSettingsWidgetState extends State<CustomSettingsWidget> {
     _successMessage.value = '';
 
     try {
-      await CustomConfig.setActivationApiUrl(url);
+      await widget.setValue(url);
       _successMessage.value = 'Saved successfully';
 
       // Clear success message after 2 seconds
@@ -56,7 +67,7 @@ class _CustomSettingsWidgetState extends State<CustomSettingsWidget> {
   }
 
   Future<void> _resetToDefault() async {
-    _apiUrlController.text = CustomConfig.defaultActivationApiUrl;
+    _apiUrlController.text = widget.getDefaultValue();
     await _saveUrl();
   }
 
@@ -66,7 +77,7 @@ class _CustomSettingsWidgetState extends State<CustomSettingsWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Activation API URL',
+          widget.title,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -128,13 +139,6 @@ class _CustomSettingsWidgetState extends State<CustomSettingsWidget> {
               )
             : SizedBox.shrink()),
         SizedBox(height: 8),
-        Text(
-          'This URL will be used for device activation. You can change it without rebuilding the app.',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
       ],
     );
   }

@@ -117,18 +117,30 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
               width: 8,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
-                color: _svcStopped.value ||
-                        stateGlobal.svcStatus.value == SvcStatus.connecting
-                    ? kColorWarn
-                    : (stateGlobal.svcStatus.value == SvcStatus.ready
-                        ? Color.fromARGB(255, 50, 190, 166)
-                        : Color.fromARGB(255, 224, 79, 95)),
+                color: _getConnColor(),
               ),
             ).marginSymmetric(horizontal: em),
             Container(
               width: isIncomingOnly ? 226 : null,
               child: _buildConnStatusMsg(),
             ),
+
+            Divider(),
+
+            Container(
+              height: 8,
+              width: 8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                color: _getWsColor(),
+              ),
+            ).marginSymmetric(horizontal: em),
+
+            Container(
+              width: isIncomingOnly ? 226 : null,
+              child: _buildWsStatusMsg(),
+            ),
+
             // stop
             if (!isIncomingOnly) startServiceWidget(),
             // ready && public
@@ -153,6 +165,19 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
     ).paddingOnly(right: isIncomingOnly ? 8 : 0);
   }
 
+  _getConnColor() {
+    if (_svcStopped.value ||
+        stateGlobal.svcStatus.value == SvcStatus.connecting) {
+      return kColorWarn;
+    }
+
+    if (stateGlobal.svcStatus.value == SvcStatus.ready) {
+      return Color.fromARGB(255, 50, 190, 166);
+    }
+
+    return Color.fromARGB(255, 224, 79, 95);
+  }
+
   _buildConnStatusMsg() {
     widget.onSvcStatusChanged?.call();
     return Text(
@@ -165,6 +190,42 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
                   : translate('Ready'),
       style: TextStyle(fontSize: em),
     );
+  }
+
+  _getWsColor() {
+    if (stateGlobal.wsStatus.value == WsStatus.connected) {
+      return Color.fromARGB(255, 50, 190, 166);
+    }
+
+    if (stateGlobal.wsStatus.value == WsStatus.error) {
+      return Color.fromARGB(255, 224, 79, 95);
+    }
+
+    return kColorWarn;
+  }
+
+  _buildWsStatusMsg() {
+    widget.onSvcStatusChanged?.call();
+    return Text(
+      stateGlobal.wsStatus.value == WsStatus.connecting
+          ? translate("connecting_status")
+          : stateGlobal.wsStatus.value == WsStatus.notActivated
+              ? translate("not_ready_status")
+              : translate("Ready"),
+      style: TextStyle(fontSize: em),
+    );
+  }
+
+  updateWsStatus() {
+    final status =
+        jsonDecode(bind.mainGetFbpWsStatus()) as Map<String, dynamic>;
+    final statusStr = status['status'] as String;
+    try {
+      stateGlobal.wsStatus.value = WsStatus.values.byName(statusStr);
+      //  stateGlobal. = WsStatus.values.byName(statusStr);
+    } catch (_) {
+      stateGlobal.wsStatus.value = WsStatus.error;
+    }
   }
 
   updateStatus() async {

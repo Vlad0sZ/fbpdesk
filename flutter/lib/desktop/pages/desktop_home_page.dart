@@ -119,13 +119,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       children.addAll([
         Divider(),
         OnlineStatusWidget(
-          onSvcStatusChanged: () {
-            if (isInHomePage()) {
-              Future.delayed(Duration(milliseconds: 300), () {
-                _updateWindowSize();
-              });
-            }
-          },
+          onSvcStatusChanged: _onStatusUpdated,
         ).marginOnly(bottom: 6, right: 6)
       ]);
     }
@@ -191,6 +185,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 if (!_activation.isActivated.value) _buildLockOverlay(context),
               ],
             )));
+  }
+
+  _onStatusUpdated() {
+    if (isInHomePage()) {
+      Future.delayed(Duration(milliseconds: 300), () {
+        _updateWindowSize();
+      });
+    }
   }
 
   _buildLockOverlay(BuildContext context) {
