@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/custom/activation_state.dart';
+import 'package:flutter_hbb/custom/password_gen.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/custom/config.dart';
 import 'package:flutter_hbb/utils/http_service.dart' as http;
@@ -47,18 +48,22 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
     try {
       // Get API URL from config
       final apiUrl = CustomConfig.getActivationApiUrl();
-      final rustDeskId = bind.mainGetMyId();
+      final rustDeskId = await bind.mainGetMyId();
+      final osInfo = bind.mainGetSysinfo();
+      final mac = bind.mainGetMac();
+      final basic = jsonDecode(bind.mainGetLoginDeviceInfo());
+      final password = await ensurePermanentPassword();
 
       final response = await http.post(
         Uri.parse('$apiUrl/api/activate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'code': code,
-          'hostname': 'hostname-here',
-          'macAddress': '00:00:00:00',
+          'hostname': basic['name'],
+          'macAddress': mac,
           'rustdeskId': rustDeskId,
-          'rustdeskPassword': '123',
-          'osinfo': 'osinfo-here'
+          'rustdeskPassword': password,
+          'osinfo': osInfo
         }),
       );
 

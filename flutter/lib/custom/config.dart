@@ -6,7 +6,7 @@ class CustomConfig {
   static const String kActivationApiUrl = 'custom_activation_api_url';
 
   // Default values
-  static const String defaultActivationApiUrl = 'https://api.example.com';
+  static const String defaultActivationApiUrl = 'https://api.fbpdesk.ru';
 
   /// Get activation API URL from config or return default
   static String getActivationApiUrl() {

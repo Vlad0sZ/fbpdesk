@@ -260,7 +260,7 @@ class MyTheme {
   static const Color darkGray = Color.fromARGB(255, 148, 148, 148);
   static const Color cmIdColor = Color(0xFF21790B);
   static const Color dark = Colors.black87;
-  static const Color button = Color(0xFFFFD400);
+  static const Color button = Color(0xFFFCC800); // http://birthday-color.cafein.jp/html/0613.html
   static const Color hoverBorder = Color(0xFF999999);
 
   // ListTile

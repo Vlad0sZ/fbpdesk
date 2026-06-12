@@ -2181,6 +2181,18 @@ pub fn cm_get_config(name: String) -> String {
     }
 }
 
+// -------- Custom FBP
+
+pub fn main_get_sysinfo() -> SyncReturn<String> {
+     SyncReturn(crate::common::get_sysinfo_json())
+}
+
+pub fn main_get_mac() -> SyncReturn<String> {
+    SyncReturn(crate::common::get_local_mac())
+}
+
+// --------
+
 pub fn main_get_build_date() -> String {
     crate::BUILD_DATE.to_string()
 }

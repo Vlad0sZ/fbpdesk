@@ -902,6 +902,18 @@ pub fn get_sysinfo() -> serde_json::Value {
 }
 
 #[inline]
+pub fn get_sysinfo_json() -> String {
+    serde_json::to_string(&get_sysinfo()).unwrap_or_else(|_| "{}".to_string())
+}
+
+pub fn get_local_mac() -> String {
+    #[cfg(not(target_os = "ios"))]
+    { crate::lan::get_local_mac() }
+    #[cfg(target_os = "ios")]
+    { String::new() }
+}
+
+#[inline]
 pub fn check_port<T: std::string::ToString>(host: T, port: i32) -> String {
     hbb_common::socket_client::check_port(host, port)
 }

@@ -9,6 +9,7 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/common/widgets/setting_widgets.dart';
 import 'package:flutter_hbb/consts.dart';
+import 'package:flutter_hbb/custom/settings_widget.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_home_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
@@ -2022,7 +2023,8 @@ class _AccountState extends State<_Account> {
       children: [
         // _Card(title: 'Account', children: [accountAction(), useInfo()]),
         _Card(title: 'Account', children: [
-          DeviceActivationPage().marginOnly(left: _kContentHMargin)
+          DeviceActivationPage().marginOnly(left: _kContentHMargin),
+          CustomSettingsWidget().marginOnly(left: _kContentHMargin)
         ])
       ],
     ).marginOnly(bottom: _kListViewBottomMargin);

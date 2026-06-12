@@ -109,6 +109,18 @@ fn get_broadcast_port() -> u16 {
     (RENDEZVOUS_PORT + 3) as _
 }
 
+#[cfg(not(target_os = "ios"))]
+pub fn get_outbound_local_ip() -> Option<std::net::IpAddr> {
+    get_ipaddr_by_peer("8.8.8.8:80")
+}
+
+#[cfg(not(target_os = "ios"))]
+pub fn get_local_mac() -> String {
+    get_outbound_local_ip()
+        .and_then(|ip| get_mac_by_ip(&ip).ok())
+        .unwrap_or_default()
+}
+
 fn get_mac(_ip: &IpAddr) -> String {
     #[cfg(not(target_os = "ios"))]
     if let Ok(mac) = get_mac_by_ip(_ip) {
@@ -121,7 +133,7 @@ fn get_mac(_ip: &IpAddr) -> String {
 }
 
 #[cfg(not(target_os = "ios"))]
-fn get_mac_by_ip(ip: &IpAddr) -> ResultType<String> {
+pub fn get_mac_by_ip(ip: &IpAddr) -> ResultType<String> {
     for interface in default_net::get_interfaces() {
         match ip {
             IpAddr::V4(local_ipv4) => {
