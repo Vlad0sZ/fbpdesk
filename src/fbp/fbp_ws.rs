@@ -1,4 +1,4 @@
-//! FBP backend WebSocket client (runs in `--server` process).
+//! FBP backend WebSocket client (runs with host server logic).
 //!
 //! Flutter integration guide: see `src/fbp/FLUTTER_WS.md`.
 
@@ -103,8 +103,12 @@ enum SessionError {
     Other(String),
 }
 
-// ---------------------------------------------------------------------------
-// Public API (FFI + extension points)
+/// True when host server logic is active (`--server` process or embedded server in portable).
+#[inline]
+fn server_active() -> bool {
+    crate::is_server() || crate::is_server_running()
+}
+
 // ---------------------------------------------------------------------------
 
 /// JSON snapshot for `main_get_fbp_ws_status()` FFI.
@@ -135,8 +139,8 @@ pub async fn ws_client_loop() -> ResultType<()> {
     let mut backoff = RECONNECT_MIN_SECS;
 
     loop {
-        if !crate::is_server() {
-            log::info!("fbp ws loop stopping: server process is shutting down");
+        if !server_active() {
+            log::info!("fbp ws loop stopping: host server is not running");
             set_status(STATUS_NOT_ACTIVATED, CODE_NONE, "server stopped", None);
             break;
         }
@@ -347,8 +351,8 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
             }
         }
 
-        if !crate::is_server() {
-            log::info!("fbp ws closing: server stopping");
+        if !server_active() {
+            log::info!("fbp ws closing: host server stopping");
             let _ = write.send(WsMessage::Close(None)).await;
             break;
         }

@@ -208,13 +208,15 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   _buildWsStatusMsg() {
     widget.onSvcStatusChanged?.call();
     return Text(
-      stateGlobal.wsStatus.value == WsStatus.connecting
-          ? translate("connecting_status")
-          : stateGlobal.wsStatus.value == WsStatus.notActivated
-              ? translate("not_ready_status")
-              : translate("Ready"),
+      stateGlobal.wsStatus.value.name,
       style: TextStyle(fontSize: em),
     );
+
+    // stateGlobal.wsStatus.value == WsStatus.connecting
+    //     ? translate("connecting_status")
+    //     : stateGlobal.wsStatus.value == WsStatus.notActivated
+    //         ? translate("not_ready_status")
+    //         : translate("Ready"),
   }
 
   updateWsStatus() {
@@ -223,7 +225,6 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
     final statusStr = status['status'] as String;
     try {
       stateGlobal.wsStatus.value = WsStatus.values.byName(statusStr);
-      //  stateGlobal. = WsStatus.values.byName(statusStr);
     } catch (_) {
       stateGlobal.wsStatus.value = WsStatus.error;
     }
