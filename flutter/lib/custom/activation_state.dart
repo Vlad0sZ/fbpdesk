@@ -17,15 +17,23 @@ class DeviceActivationState extends GetxController {
   final deviceId = ''.obs;
   final token = ''.obs;
 
+  bool get hasCredentials =>
+      token.value.isNotEmpty && deviceId.value.isNotEmpty;
+
   @override
   void onInit() {
     super.onInit();
     reload();
+    ever(stateGlobal.wsStatus, (_) => _syncFromWsStatus());
   }
 
   void reload() {
     token.value = bind.mainGetLocalOption(key: kCommConfKeyDeviceToken);
     deviceId.value = bind.mainGetLocalOption(key: kCommConfKeyDeviceId);
+    _syncFromWsStatus();
+  }
+
+  void _syncFromWsStatus() {
     isActivated.value = stateGlobal.wsStatus.value == WsStatus.connected;
     isBlocked.value = stateGlobal.wsStatus.value == WsStatus.blocked;
   }

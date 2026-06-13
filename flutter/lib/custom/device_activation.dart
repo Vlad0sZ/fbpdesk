@@ -96,11 +96,48 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => _activation.isActivated.value
-        ? _buildActivatedView(context)
-        : _activation.isBlocked.value
-            ? _buildBlockedView(context)
-            : _buildActivationForm(context));
+    return Obx(() {
+      if (_activation.isActivated.value) {
+        return _buildActivatedView(context);
+      }
+      if (_activation.isBlocked.value) {
+        return _buildBlockedView(context);
+      }
+      if (_activation.hasCredentials) {
+        return _buildConnectingView(context);
+      }
+      return _buildActivationForm(context);
+    });
+  }
+
+  Widget _buildConnectingView(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              translate('connecting_status'),
+              style: TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBlockedView(BuildContext context) {

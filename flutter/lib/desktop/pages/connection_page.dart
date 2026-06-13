@@ -231,16 +231,23 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   updateWsStatus() {
     final status =
         jsonDecode(bind.mainGetFbpWsStatus()) as Map<String, dynamic>;
-    final statusStr = status['status'] as String;
-    try {
-      final val = WsStatus.values.byName(statusStr);
-      if (val == WsStatus.error && status['code'] == 'blocked') {
-        stateGlobal.wsStatus.value = WsStatus.blocked;
-      } else {
-        stateGlobal.wsStatus.value = val;
-      }
-    } catch (_) {
-      stateGlobal.wsStatus.value = WsStatus.error;
+    final statusStr = status['status'] as String? ?? '';
+    final code = status['code'] as String? ?? '';
+    stateGlobal.wsStatus.value = _parseWsStatus(statusStr, code);
+  }
+
+  WsStatus _parseWsStatus(String statusStr, String code) {
+    switch (statusStr) {
+      case 'not_activated':
+        return WsStatus.notActivated;
+      case 'connecting':
+        return WsStatus.connecting;
+      case 'connected':
+        return WsStatus.connected;
+      case 'error':
+        return code == 'blocked' ? WsStatus.blocked : WsStatus.error;
+      default:
+        return WsStatus.error;
     }
   }
 
