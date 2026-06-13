@@ -98,7 +98,54 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
   Widget build(BuildContext context) {
     return Obx(() => _activation.isActivated.value
         ? _buildActivatedView(context)
-        : _buildActivationForm(context));
+        : _activation.isBlocked.value
+            ? _buildBlockedView(context)
+            : _buildActivationForm(context));
+  }
+
+  Widget _buildBlockedView(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color.fromARGB(255, 248, 81, 31).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Color.fromARGB(255, 248, 81, 31),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Color.fromARGB(255, 248, 81, 31),
+                size: 24,
+              ),
+              SizedBox(width: 12),
+              Text(
+                translate('activation_device_blocked_title'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          // ElevatedButton(
+          //   onPressed: _deactivateDevice,
+          //   style: ElevatedButton.styleFrom(
+          //     backgroundColor: Colors.red,
+          //     foregroundColor: Colors.white,
+          //   ),
+          //   child: Text('Deactivate Device'),
+          // ),
+        ],
+      ),
+    );
   }
 
   /// View shown when device is activated

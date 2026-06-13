@@ -198,7 +198,8 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
       return Color.fromARGB(255, 50, 190, 166);
     }
 
-    if (stateGlobal.wsStatus.value == WsStatus.error) {
+    if (stateGlobal.wsStatus.value == WsStatus.error ||
+        stateGlobal.wsStatus.value == WsStatus.blocked) {
       return Color.fromARGB(255, 224, 79, 95);
     }
 
@@ -207,16 +208,24 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
   _buildWsStatusMsg() {
     widget.onSvcStatusChanged?.call();
+
+    String text;
+
+    switch (stateGlobal.wsStatus.value) {
+      case WsStatus.connecting:
+        text = translate("connecting_status");
+
+      case WsStatus.connected:
+        text = translate("Ready");
+
+      default:
+        text = translate("not_ready_status");
+    }
+
     return Text(
-      stateGlobal.wsStatus.value.name,
+      text,
       style: TextStyle(fontSize: em),
     );
-
-    // stateGlobal.wsStatus.value == WsStatus.connecting
-    //     ? translate("connecting_status")
-    //     : stateGlobal.wsStatus.value == WsStatus.notActivated
-    //         ? translate("not_ready_status")
-    //         : translate("Ready"),
   }
 
   updateWsStatus() {
@@ -224,7 +233,12 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
         jsonDecode(bind.mainGetFbpWsStatus()) as Map<String, dynamic>;
     final statusStr = status['status'] as String;
     try {
-      stateGlobal.wsStatus.value = WsStatus.values.byName(statusStr);
+      final val = WsStatus.values.byName(statusStr);
+      if (val == WsStatus.error && status['code'] == 'blocked') {
+        stateGlobal.wsStatus.value = WsStatus.blocked;
+      } else {
+        stateGlobal.wsStatus.value = val;
+      }
     } catch (_) {
       stateGlobal.wsStatus.value = WsStatus.error;
     }

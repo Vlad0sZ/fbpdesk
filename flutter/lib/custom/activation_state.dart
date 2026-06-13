@@ -1,5 +1,6 @@
 // flutter/lib/custom/activation_state.dart
 import 'package:flutter_hbb/models/platform_model.dart';
+import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 
 const kCommConfKeyDeviceToken = 'device_activation_token';
@@ -12,6 +13,7 @@ class DeviceActivationState extends GetxController {
           : Get.put(DeviceActivationState(), permanent: true);
 
   final isActivated = false.obs;
+  final isBlocked = false.obs;
   final deviceId = ''.obs;
   final token = ''.obs;
 
@@ -24,7 +26,8 @@ class DeviceActivationState extends GetxController {
   void reload() {
     token.value = bind.mainGetLocalOption(key: kCommConfKeyDeviceToken);
     deviceId.value = bind.mainGetLocalOption(key: kCommConfKeyDeviceId);
-    isActivated.value = token.value.isNotEmpty && deviceId.value.isNotEmpty;
+    isActivated.value = stateGlobal.wsStatus.value == WsStatus.connected;
+    isBlocked.value = stateGlobal.wsStatus.value == WsStatus.blocked;
   }
 
   Future<void> save({required String token, required String deviceId}) async {

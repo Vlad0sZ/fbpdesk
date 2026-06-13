@@ -8,6 +8,8 @@ use std::time::Duration;
 use futures_util::{SinkExt, StreamExt};
 use hbb_common::{
     config::LocalConfig,
+    config::Config,
+    password_security::{self, temporary_enabled},
     log,
     serde_json::{self, json, Value},
     tokio::{
@@ -239,7 +241,8 @@ pub fn handle_incoming_message(value: &Value) -> Option<String> {
         Some("echo") => {
             let data = value.get("data").cloned().unwrap_or(Value::Null);
             Some(json!({"type": "echo_reply", "data": data}).to_string())
-        }
+        },
+        Some("payload") => Some(hello_payload_json()),
         _ => {
             log::debug!("fbp ws unhandled message: {value}");
             None
@@ -249,8 +252,24 @@ pub fn handle_incoming_message(value: &Value) -> Option<String> {
 
 /// Optional hook: outbound messages sent right after a successful handshake.
 pub fn on_connected() -> Vec<String> {
-    // vec![json!({"type":"hello","version": crate::VERSION}).to_string()]
-    vec![]
+    vec![hello_payload_json()]
+}
+
+fn hello_payload_json() -> String {
+    let mut payload = json!({
+        "type": "agent-hello",
+        "version": crate::VERSION,
+        "id": Config::get_id(),
+    });
+
+    if temporary_enabled() {
+        let pwd = password_security::temporary_password();
+        if !pwd.is_empty() {
+            payload["temporary_password"] = json!(pwd);
+        }
+    }
+
+    payload.to_string()
 }
 
 // ---------------------------------------------------------------------------

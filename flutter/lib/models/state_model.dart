@@ -7,7 +7,7 @@ import './platform_model.dart';
 
 enum SvcStatus { notReady, connecting, ready }
 
-enum WsStatus { notActivated, connecting, connected, error }
+enum WsStatus { notActivated, connecting, connected, error, blocked }
 
 class StateGlobal {
   int _windowId = -1;

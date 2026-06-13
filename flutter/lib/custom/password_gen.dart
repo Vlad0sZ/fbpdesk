@@ -10,7 +10,16 @@ Future<String> ensurePermanentPassword() async {
 }
 
 String _generatePassword() {
-  const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const numbers = '1234567890';
+  const lowerChars = 'abcdefghijkmnopqrstuvwxyz';
+  const upperChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const list = [numbers, lowerChars, upperChars];
+
   final rand = Random.secure();
-  return List.generate(12, (_) => chars[rand.nextInt(chars.length)]).join();
+
+  // строчный + заглавные + цифры -> больше 8 символов
+  return List.generate(12, (index) {
+    final l = list[(index + rand.nextInt(100)) % list.length];
+    return l[rand.nextInt(l.length)];
+  }).join();
 }

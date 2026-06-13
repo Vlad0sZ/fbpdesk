@@ -1025,7 +1025,8 @@ pub fn init_fbp_app_name() {
     use hbb_common::config::Config;
     if Config::get_option("custom-rendezvous-server").is_empty() {
 
-        // TODO custom relay server is here
+        // TODO custom relay server  is here
+        Config::set_option("key".into(), "nByjdJvX03NWDpP5gC5hxLxwuBKOt4NvZ+vkQ6yidUo=".into());
         Config::set_option("custom-rendezvous-server".into(), "remote.fbpdesk.ru".into());
     }
 }

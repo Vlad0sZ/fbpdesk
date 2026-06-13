@@ -752,6 +752,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("activation_device_id", ""),
         ("activation_device_activated_title", ""),
         ("activation_license_required", ""),
+        ("activation_device_blocked_title", ""),
 
     ].iter().cloned().collect();
 }
