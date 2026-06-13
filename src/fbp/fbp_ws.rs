@@ -251,17 +251,6 @@ pub fn on_connected() -> Vec<String> {
 
 // ---------------------------------------------------------------------------
 
-fn ws_sink_error(context: &str, e: impl std::fmt::Debug) -> SessionError {
-    SessionError::Other(format!("{context}: {e:?}"))
-}
-
-fn http_response_body(resp: &http::Response<Option<Vec<u8>>>) -> String {
-    resp.body()
-        .as_ref()
-        .map(|body| String::from_utf8_lossy(body).into_owned())
-        .unwrap_or_default()
-}
-
 async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionError> {
     let ws_stream = connect_ws(url).await?;
     let (mut write, mut read) = ws_stream.split();
@@ -276,8 +265,11 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
     log::info!("fbp ws connected (device_id={})", creds.device_id);
 
     for msg in on_connected() {
-        if let Err(e) = write.send(WsMessage::Text(msg.into())).await {
-            return Err(ws_sink_error("failed to send on_connected message", e));
+        if write.send(WsMessage::Text(msg.into())).await.is_err() {
+            log::error!("fbp ws failed to send on_connected message");
+            return Err(SessionError::Other(
+                "failed to send on_connected message".to_string(),
+            ));
         }
     }
 
@@ -288,16 +280,18 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
         tokio::select! {
             _ = ping_tick.tick() => {
                 log::debug!("fbp ws sending protocol Ping");
-                if let Err(e) = write.send(WsMessage::Ping(Vec::new().into())).await {
-                    return Err(ws_sink_error("ping failed", e));
+                if write.send(WsMessage::Ping(Vec::new().into())).await.is_err() {
+                    log::error!("fbp ws ping failed");
+                    return Err(SessionError::Other("ping failed".to_string()));
                 }
             }
             out = out_rx.recv() => {
                 match out {
                     Some(text) => {
                         log::info!("fbp ws sending outbound ({} bytes)", text.len());
-                        if let Err(e) = write.send(WsMessage::Text(text.into())).await {
-                            return Err(ws_sink_error("write failed", e));
+                        if write.send(WsMessage::Text(text.into())).await.is_err() {
+                            log::error!("fbp ws outbound write failed");
+                            return Err(SessionError::Other("write failed".to_string()));
                         }
                     }
                     None => {
@@ -322,8 +316,9 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
                         log::info!("fbp ws received binary ({} bytes)", data.len());
                     }
                     Some(Ok(WsMessage::Ping(payload))) => {
-                        if let Err(e) = write.send(WsMessage::Pong(payload)).await {
-                            return Err(ws_sink_error("pong failed", e));
+                        if write.send(WsMessage::Pong(payload)).await.is_err() {
+                            log::error!("fbp ws pong failed");
+                            return Err(SessionError::Other("pong failed".to_string()));
                         }
                     }
                     Some(Ok(WsMessage::Pong(_))) => {}
@@ -389,8 +384,9 @@ async fn process_incoming_text(
 
     if let Some(reply) = handle_incoming_message(&value) {
         log::info!("fbp ws auto-reply ({} bytes)", reply.len());
-        if let Err(e) = write.send(WsMessage::Text(reply.into())).await {
-            return Err(ws_sink_error("reply write failed", e));
+        if write.send(WsMessage::Text(reply.into())).await.is_err() {
+            log::error!("fbp ws reply write failed");
+            return Err(SessionError::Other("reply write failed".to_string()));
         }
     }
 
@@ -415,6 +411,13 @@ async fn connect_ws(
         Ok(Err(e)) => Err(map_connect_error(e)),
         Err(_) => Err(SessionError::Other("websocket connect timeout".to_string())),
     }
+}
+
+fn http_response_body(resp: &http::Response<Option<Vec<u8>>>) -> String {
+    resp.body()
+        .as_ref()
+        .map(|body| String::from_utf8_lossy(body).into_owned())
+        .unwrap_or_default()
 }
 
 fn map_connect_error(err: WsError) -> SessionError {
