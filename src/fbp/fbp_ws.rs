@@ -105,10 +105,36 @@ enum SessionError {
     Other(String),
 }
 
-/// True when host server logic is active (`--server` process or embedded server in portable).
+/// Whether the WS client should run in this process.
+///
+/// With an installed app + Windows service, host logic runs in `--server` while
+/// Flutter UI, credentials, and status FFI live in the main process.
 #[inline]
-fn server_active() -> bool {
+fn ws_should_run() -> bool {
+    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+    {
+        if crate::is_server() {
+            return false;
+        }
+        if crate::common::is_main() {
+            return true;
+        }
+    }
     crate::is_server() || crate::is_server_running()
+}
+
+/// Start WS client in the Flutter UI process (once per process).
+pub fn spawn_client() {
+    use std::sync::Once;
+    static STARTED: Once = Once::new();
+    STARTED.call_once(|| {
+        log::info!("fbp ws: spawning client in UI process");
+        hbb_common::tokio::spawn(async {
+            if let Err(e) = ws_client_loop().await {
+                log::error!("fbp ws client loop exited: {e}");
+            }
+        });
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -141,8 +167,8 @@ pub async fn ws_client_loop() -> ResultType<()> {
     let mut backoff = RECONNECT_MIN_SECS;
 
     loop {
-        if !server_active() {
-            log::info!("fbp ws loop stopping: host server is not running");
+        if !ws_should_run() {
+            log::info!("fbp ws loop stopping");
             set_status(STATUS_NOT_ACTIVATED, CODE_NONE, "server stopped", None);
             break;
         }
@@ -401,8 +427,8 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
             }
         }
 
-        if !server_active() {
-            log::info!("fbp ws closing: host server stopping");
+        if !ws_should_run() {
+            log::info!("fbp ws closing");
             let _ = write.send(WsMessage::Close(None)).await;
             break;
         }

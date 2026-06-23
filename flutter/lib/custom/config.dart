@@ -8,7 +8,7 @@ class CustomConfig {
 
   // Default values
   static const String defaultActivationApiUrl = 'https://api.fbpdesk.ru';
-  static const String defaultWebsocketUrl = 'wss://api.fbpdesk.ru';
+  static const String defaultWebsocketUrl = 'wss://api.fbpdesk.ru/ws';
 
   /// Get activation API URL from config or return default
   static String getActivationApiUrl() {
