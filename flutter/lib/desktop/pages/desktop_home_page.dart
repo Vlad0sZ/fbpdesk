@@ -182,7 +182,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         child: Obx(() => Stack(
               children: [
                 ConnectionPage(),
-                if (!_activation.isActivated.value) _buildLockOverlay(context),
+                if (_activation.shouldLockConnection)
+                  _buildLockOverlay(context),
               ],
             )));
   }

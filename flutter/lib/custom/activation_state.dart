@@ -17,8 +17,15 @@ class DeviceActivationState extends GetxController {
   final deviceId = ''.obs;
   final token = ''.obs;
 
+  /// Token and device id saved after successful API activation.
   bool get hasCredentials =>
       token.value.isNotEmpty && deviceId.value.isNotEmpty;
+
+  /// Lock connection tab: blocked by server, or never activated (no credentials).
+  bool get shouldLockConnection => isBlocked.value || !hasCredentials;
+
+  /// True when API activation is done and WS session is up (not blocked).
+  /// UI: green "activated" card in settings.
 
   @override
   void onInit() {
@@ -34,8 +41,10 @@ class DeviceActivationState extends GetxController {
   }
 
   void _syncFromWsStatus() {
-    isActivated.value = stateGlobal.wsStatus.value == WsStatus.connected;
     isBlocked.value = stateGlobal.wsStatus.value == WsStatus.blocked;
+    isActivated.value = hasCredentials &&
+        !isBlocked.value &&
+        stateGlobal.wsStatus.value == WsStatus.connected;
   }
 
   Future<void> save({required String token, required String deviceId}) async {

@@ -52,7 +52,7 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
       final osInfo = bind.mainGetSysinfo();
       final mac = bind.mainGetMac();
       final basic = jsonDecode(bind.mainGetLoginDeviceInfo());
-      final password = await ensurePermanentPassword();
+      final password = await getTemporaryPassword();
 
       final response = await http.post(
         Uri.parse('$apiUrl/api/activate'),
@@ -97,11 +97,11 @@ class _DeviceActivationPageState extends State<DeviceActivationPage> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (_activation.isActivated.value) {
-        return _buildActivatedView(context);
-      }
       if (_activation.isBlocked.value) {
         return _buildBlockedView(context);
+      }
+      if (_activation.isActivated.value) {
+        return _buildActivatedView(context);
       }
       if (_activation.hasCredentials) {
         return _buildConnectingView(context);

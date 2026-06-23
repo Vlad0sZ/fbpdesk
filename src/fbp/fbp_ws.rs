@@ -262,14 +262,29 @@ fn hello_payload_json() -> String {
         "id": Config::get_id(),
     });
 
-    if temporary_enabled() {
-        let pwd = password_security::temporary_password();
-        if !pwd.is_empty() {
+    match current_temporary_password() {
+        Some(pwd) => {
             payload["temporary_password"] = json!(pwd);
+            payload["rustdeskPassword"] = json!(pwd);
+        }
+        None => {
+            log::debug!("fbp ws agent-hello: no temporary password (disabled or empty)");
         }
     }
 
     payload.to_string()
+}
+
+fn current_temporary_password() -> Option<String> {
+    if !temporary_enabled() {
+        return None;
+    }
+    let pwd = password_security::temporary_password();
+    if pwd.is_empty() {
+        None
+    } else {
+        Some(pwd)
+    }
 }
 
 // ---------------------------------------------------------------------------
