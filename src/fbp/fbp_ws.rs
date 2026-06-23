@@ -241,8 +241,16 @@ pub fn handle_incoming_message(value: &Value) -> Option<String> {
         Some("echo") => {
             let data = value.get("data").cloned().unwrap_or(Value::Null);
             Some(json!({"type": "echo_reply", "data": data}).to_string())
-        },
+        }
         Some("payload") => Some(hello_payload_json()),
+        Some("password-request") => value
+            .get("request_id")
+            .and_then(|v| v.as_str())
+            .map(|request_id| password_response_json(request_id))
+            .or_else(|| {
+                log::warn!("fbp ws password-request without request_id: {value}");
+                None
+            }),
         _ => {
             log::debug!("fbp ws unhandled message: {value}");
             None
@@ -256,20 +264,28 @@ pub fn on_connected() -> Vec<String> {
 }
 
 fn hello_payload_json() -> String {
+    build_agent_payload("agent-hello", None)
+}
+
+fn password_response_json(request_id: &str) -> String {
+    build_agent_payload("password-response", Some(request_id))
+}
+
+fn build_agent_payload(msg_type: &str, request_id: Option<&str>) -> String {
     let mut payload = json!({
-        "type": "agent-hello",
+        "type": msg_type,
         "version": crate::VERSION,
         "id": Config::get_id(),
     });
 
-    match current_temporary_password() {
-        Some(pwd) => {
-            payload["temporary_password"] = json!(pwd);
-            payload["rustdeskPassword"] = json!(pwd);
-        }
-        None => {
-            log::debug!("fbp ws agent-hello: no temporary password (disabled or empty)");
-        }
+    if let Some(rid) = request_id {
+        payload["request_id"] = json!(rid);
+    }
+
+    if let Some(pwd) = current_temporary_password() {
+        payload["temporary_password"] = json!(pwd);
+    } else {
+        log::debug!("fbp ws {msg_type}: no temporary password (disabled or empty)");
     }
 
     payload.to_string()
