@@ -124,13 +124,25 @@ fn ws_should_run() -> bool {
 }
 
 /// Start WS client in the Flutter UI process (once per process).
+///
+/// Uses a dedicated thread + tokio runtime so the client survives after
+/// `start_server(false)` returns (installed app + external `--server`).
 pub fn spawn_client() {
     use std::sync::Once;
+    use hbb_common::tokio::runtime::Runtime;
+
     static STARTED: Once = Once::new();
     STARTED.call_once(|| {
         log::info!("fbp ws: spawning client in UI process");
-        hbb_common::tokio::spawn(async {
-            if let Err(e) = ws_client_loop().await {
+        std::thread::spawn(move || {
+            let rt = match Runtime::new() {
+                Ok(rt) => rt,
+                Err(e) => {
+                    log::error!("fbp ws: failed to create tokio runtime: {e}");
+                    return;
+                }
+            };
+            if let Err(e) = rt.block_on(ws_client_loop()) {
                 log::error!("fbp ws client loop exited: {e}");
             }
         });
