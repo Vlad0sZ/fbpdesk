@@ -269,7 +269,7 @@ pub async fn ws_client_loop() -> ResultType<()> {
 ///
 /// Return `Some(payload)` to send a reply; `None` to stay silent.
 /// Edit this function to implement your protocol.
-pub fn handle_incoming_message(value: &Value) -> Option<String> {
+async fn handle_incoming_message(value: &Value) -> Option<String> {
     if let Some(err) = value.get("error").and_then(|v| v.as_str()) {
         log::warn!("fbp ws server message error field: {err}");
     }
@@ -280,15 +280,14 @@ pub fn handle_incoming_message(value: &Value) -> Option<String> {
             let data = value.get("data").cloned().unwrap_or(Value::Null);
             Some(json!({"type": "echo_reply", "data": data}).to_string())
         }
-        Some("payload") => Some(hello_payload_json()),
-        Some("password-request") => value
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|request_id| password_response_json(request_id))
-            .or_else(|| {
+        Some("payload") => Some(build_agent_payload("agent-hello", None).await),
+        Some("password-request") => match value.get("request_id").and_then(|v| v.as_str()) {
+            Some(request_id) => Some(build_agent_payload("password-response", Some(request_id)).await),
+            None => {
                 log::warn!("fbp ws password-request without request_id: {value}");
                 None
-            }),
+            }
+        },
         _ => {
             log::debug!("fbp ws unhandled message: {value}");
             None
@@ -296,20 +295,11 @@ pub fn handle_incoming_message(value: &Value) -> Option<String> {
     }
 }
 
-/// Optional hook: outbound messages sent right after a successful handshake.
-pub fn on_connected() -> Vec<String> {
-    vec![hello_payload_json()]
+async fn on_connected_messages() -> Vec<String> {
+    vec![build_agent_payload("agent-hello", None).await]
 }
 
-fn hello_payload_json() -> String {
-    build_agent_payload("agent-hello", None)
-}
-
-fn password_response_json(request_id: &str) -> String {
-    build_agent_payload("password-response", Some(request_id))
-}
-
-fn build_agent_payload(msg_type: &str, request_id: Option<&str>) -> String {
+async fn build_agent_payload(msg_type: &str, request_id: Option<&str>) -> String {
     let mut payload = json!({
         "type": msg_type,
         "version": crate::VERSION,
@@ -320,7 +310,7 @@ fn build_agent_payload(msg_type: &str, request_id: Option<&str>) -> String {
         payload["request_id"] = json!(rid);
     }
 
-    if let Some(pwd) = current_temporary_password() {
+    if let Some(pwd) = fetch_temporary_password().await {
         payload["temporary_password"] = json!(pwd);
     } else {
         log::debug!("fbp ws {msg_type}: no temporary password (disabled or empty)");
@@ -329,15 +319,40 @@ fn build_agent_payload(msg_type: &str, request_id: Option<&str>) -> String {
     payload.to_string()
 }
 
-fn current_temporary_password() -> Option<String> {
+/// Same source as Flutter UI: host `--server` via IPC, not in-process lazy_static.
+async fn fetch_temporary_password() -> Option<String> {
     if !temporary_enabled() {
         return None;
     }
-    let pwd = password_security::temporary_password();
-    if pwd.is_empty() {
-        None
-    } else {
-        Some(pwd)
+    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+    {
+        if let Some(pwd) = query_server_temporary_password().await {
+            return Some(pwd);
+        }
+        let cached = crate::ui_interface::temporary_password();
+        return (!cached.is_empty()).then_some(cached);
+    }
+    #[cfg(not(all(feature = "flutter", not(any(target_os = "android", target_os = "ios")))))]
+    {
+        let pwd = password_security::temporary_password();
+        (!pwd.is_empty()).then_some(pwd)
+    }
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+async fn query_server_temporary_password() -> Option<String> {
+    use crate::ipc::{self, Data};
+
+    const TIMEOUT_MS: u64 = 1000;
+    let mut c = ipc::connect(TIMEOUT_MS, "").await.ok()?;
+    c.send(&Data::Config(("temporary-password".to_owned(), None)))
+        .await
+        .ok()?;
+    match c.next_timeout(TIMEOUT_MS).await.ok()? {
+        Some(Data::Config((name, value))) if name == "temporary-password" => {
+            value.filter(|p| !p.is_empty())
+        }
+        _ => None,
     }
 }
 
@@ -356,7 +371,7 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
     set_status(STATUS_CONNECTED, CODE_NONE, "connected", Some(connected_at));
     log::info!("fbp ws connected (device_id={})", creds.device_id);
 
-    for msg in on_connected() {
+    for msg in on_connected_messages().await {
         if write.send(WsMessage::Text(msg.into())).await.is_err() {
             log::error!("fbp ws failed to send on_connected message");
             return Err(SessionError::Other(
@@ -474,7 +489,7 @@ async fn process_incoming_text(
         }
     }
 
-    if let Some(reply) = handle_incoming_message(&value) {
+    if let Some(reply) = handle_incoming_message(&value).await {
         log::info!("fbp ws auto-reply ({} bytes)", reply.len());
         if write.send(WsMessage::Text(reply.into())).await.is_err() {
             log::error!("fbp ws reply write failed");
