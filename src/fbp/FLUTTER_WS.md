@@ -13,7 +13,7 @@ Rust-модуль: `src/fbp/fbp_ws.rs`
 |---|---|---|
 | `device_activation_token` | активация | query `token` |
 | `device_activation_device_id` | активация | query `device_id` (GUID) |
-| `custom_websocket_url` | UI / `CustomConfig` | базовый URL, default `wss://api.fbpdesk.ru` |
+| `custom_websocket_url` | UI / `CustomConfig` | базовый URL, default `wss://api.fbpdesk.ru/ws` |
 
 Если `token` или `device_id` пустые — WS **не подключается**, статус `not_activated`.
 

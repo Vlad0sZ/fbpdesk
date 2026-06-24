@@ -40,7 +40,7 @@ use uuid::Uuid;
 const KEY_DEVICE_TOKEN: &str = "device_activation_token";
 const KEY_DEVICE_ID: &str = "device_activation_device_id";
 const KEY_WEBSOCKET_URL: &str = "custom_websocket_url";
-const DEFAULT_WEBSOCKET_URL: &str = "wss://api.fbpdesk.ru";
+const DEFAULT_WEBSOCKET_URL: &str = "wss://api.fbpdesk.ru/ws";
 
 const EVENT_NAME: &str = "fbp_ws_status";
 const CONNECT_TIMEOUT_MS: u64 = 15_000;
@@ -531,15 +531,38 @@ fn map_http_error(status: u16, body: &str) -> (&'static str, String) {
     }
 }
 
-/// Same source as `ui_interface::get_video_save_directory` / IPC `get_local_option`.
+/// Same sources as IPC `get_local_option` on `--server`; UI process reads its own LocalConfig.
 fn activation_local_option(key: &str) -> String {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        return LocalConfig::get_option_from_file(key);
+        let v = LocalConfig::get_option_from_file(key);
+        if !v.is_empty() {
+            return v;
+        }
     }
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    {
-        crate::get_local_option(key)
+    crate::get_local_option(key)
+}
+
+/// Push activation keys from the UI process to an out-of-process `--server`.
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub fn sync_activation_to_host_server() {
+    if crate::is_server() || crate::is_server_running() {
+        return;
+    }
+    for key in [
+        KEY_DEVICE_TOKEN,
+        KEY_DEVICE_ID,
+        KEY_WEBSOCKET_URL,
+    ] {
+        let value = crate::get_local_option(key);
+        if value.is_empty() {
+            continue;
+        }
+        let key = key.to_string();
+        log::info!("fbp ws: syncing {key} to host --server");
+        std::thread::spawn(move || {
+            let _ = crate::ipc::set_wayland_screencast_restore_token(key, value);
+        });
     }
 }
 

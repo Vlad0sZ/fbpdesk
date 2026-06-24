@@ -645,6 +645,8 @@ pub async fn start_server(is_server: bool, no_server: bool) {
                 #[cfg(feature = "hwcodec")]
                 #[cfg(any(target_os = "windows", target_os = "linux"))]
                 crate::ipc::client_get_hwcodec_config_thread(0);
+                #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+                crate::fbp::fbp_ws::sync_activation_to_host_server();
             }
             Err(err) => {
                 log::info!("server not started: {err:?}, no_server: {no_server}");

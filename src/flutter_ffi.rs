@@ -1182,17 +1182,16 @@ fn sync_fbp_activation_to_host_server(key: &str, value: &str) {
     if !KEYS.contains(&key) {
         return;
     }
-    if !crate::is_server_running() || crate::is_server() {
+    if crate::is_server() || crate::is_server_running() {
+        return;
+    }
+    if value.is_empty() {
         return;
     }
     let key = key.to_owned();
     let value = value.to_owned();
     std::thread::spawn(move || {
-        if value.is_empty() {
-            let _ = crate::ipc::clear_wayland_screencast_restore_token(key);
-        } else {
-            let _ = crate::ipc::set_wayland_screencast_restore_token(key, value);
-        }
+        let _ = crate::ipc::set_wayland_screencast_restore_token(key, value);
     });
 }
 
