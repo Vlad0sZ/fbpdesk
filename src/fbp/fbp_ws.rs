@@ -120,11 +120,28 @@ pub fn status_json() -> String {
     }
     #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
     {
-        if let Ok(Some(json)) = crate::ipc::get_fbp_ws_status() {
-            return json;
+        match crate::ipc::get_fbp_ws_status() {
+            Ok(Some(json)) => return json,
+            Ok(None) => {
+                log::debug!("fbp ws status: ipc returned empty (host server not ready?)");
+            }
+            Err(e) => {
+                log::debug!("fbp ws status: ipc query failed: {e}");
+            }
         }
+        return ipc_unreachable_status_json();
     }
-    "{}".to_string()
+    local_status_json()
+}
+
+fn ipc_unreachable_status_json() -> String {
+    serde_json::to_string(&FbpWsStatus {
+        status: STATUS_ERROR.to_string(),
+        code: CODE_IO_ERROR.to_string(),
+        detail: "host server unreachable".to_string(),
+        connected_since: None,
+    })
+    .unwrap_or_else(|_| "{}".to_string())
 }
 
 pub fn local_status_json() -> String {
@@ -146,7 +163,7 @@ pub fn send_message(text: &str) -> ResultType<()> {
     send_message_local(text)
 }
 
-fn send_message_local(text: &str) -> ResultType<()> {
+pub fn send_message_local(text: &str) -> ResultType<()> {
     let tx = RUNTIME
         .read()
         .map_err(|_| hbb_common::anyhow::anyhow!("fbp ws runtime poisoned"))?
@@ -529,12 +546,14 @@ fn map_http_error(status: u16, body: &str) -> (&'static str, String) {
 }
 
 fn load_credentials() -> Option<Credentials> {
-    let token = LocalConfig::get_option(KEY_DEVICE_TOKEN);
-    let device_id = LocalConfig::get_option(KEY_DEVICE_ID);
+    // Activation is saved from the Flutter UI process; `--server` may have started
+    // earlier (Windows service) with an empty in-memory LocalConfig cache.
+    let token = LocalConfig::get_option_from_file(KEY_DEVICE_TOKEN);
+    let device_id = LocalConfig::get_option_from_file(KEY_DEVICE_ID);
     if token.is_empty() || device_id.is_empty() {
         return None;
     }
-    let mut ws_base_url = LocalConfig::get_option(KEY_WEBSOCKET_URL);
+    let mut ws_base_url = LocalConfig::get_option_from_file(KEY_WEBSOCKET_URL);
     if ws_base_url.is_empty() {
         ws_base_url = DEFAULT_WEBSOCKET_URL.to_string();
     }

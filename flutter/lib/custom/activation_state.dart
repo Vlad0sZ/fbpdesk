@@ -1,4 +1,7 @@
 // flutter/lib/custom/activation_state.dart
+import 'dart:async';
+
+import 'package:flutter_hbb/custom/ws_status.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
@@ -24,6 +27,8 @@ class DeviceActivationState extends GetxController {
   /// Lock connection tab: blocked by server, or never activated (no credentials).
   bool get shouldLockConnection => isBlocked.value || !hasCredentials;
 
+  Timer? _wsPollTimer;
+
   /// True when API activation is done and WS session is up (not blocked).
   /// UI: green "activated" card in settings.
 
@@ -32,6 +37,15 @@ class DeviceActivationState extends GetxController {
     super.onInit();
     reload();
     ever(stateGlobal.wsStatus, (_) => _syncFromWsStatus());
+    refreshWsStatusFromRust();
+    _wsPollTimer = Timer.periodic(
+        const Duration(seconds: 1), (_) => refreshWsStatusFromRust());
+  }
+
+  @override
+  void onClose() {
+    _wsPollTimer?.cancel();
+    super.onClose();
   }
 
   void reload() {

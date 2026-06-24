@@ -947,7 +947,7 @@ async fn handle(data: Data, stream: &mut Connection) {
         Data::FbpWsStatus(Some(_)) => {}
         #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
         Data::FbpWsSend(msg) => {
-            allow_err!(crate::fbp::fbp_ws::send_message(&msg));
+            allow_err!(crate::fbp::fbp_ws::send_message_local(&msg));
         }
         _ => {}
     }

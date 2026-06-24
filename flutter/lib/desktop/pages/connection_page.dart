@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/widgets/connection_page_title.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
+import 'package:flutter_hbb/custom/ws_status.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -229,26 +230,7 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   }
 
   updateWsStatus() {
-    final status =
-        jsonDecode(bind.mainGetFbpWsStatus()) as Map<String, dynamic>;
-    final statusStr = status['status'] as String? ?? '';
-    final code = status['code'] as String? ?? '';
-    stateGlobal.wsStatus.value = _parseWsStatus(statusStr, code);
-  }
-
-  WsStatus _parseWsStatus(String statusStr, String code) {
-    switch (statusStr) {
-      case 'not_activated':
-        return WsStatus.notActivated;
-      case 'connecting':
-        return WsStatus.connecting;
-      case 'connected':
-        return WsStatus.connected;
-      case 'error':
-        return code == 'blocked' ? WsStatus.blocked : WsStatus.error;
-      default:
-        return WsStatus.error;
-    }
+    refreshWsStatusFromRust();
   }
 
   updateStatus() async {
