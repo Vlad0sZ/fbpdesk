@@ -1,4 +1,4 @@
-//! FBP backend WebSocket client (runs with host server logic).
+//! FBP backend WebSocket client (runs in host server process: `--server` or embedded).
 //!
 //! Flutter integration guide: see `src/fbp/FLUTTER_WS.md`.
 
@@ -105,59 +105,48 @@ enum SessionError {
     Other(String),
 }
 
-/// Whether the WS client should run in this process.
-///
-/// With an installed app + Windows service, host logic runs in `--server` while
-/// Flutter UI, credentials, and status FFI live in the main process.
+/// WS runs where host server logic runs (`--server` or embedded server).
 #[inline]
-fn ws_should_run() -> bool {
-    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
-    {
-        if crate::is_server() {
-            return false;
-        }
-        if crate::common::is_main() {
-            return true;
-        }
-    }
+fn ws_runs_here() -> bool {
     crate::is_server() || crate::is_server_running()
-}
-
-/// Start WS client in the Flutter UI process (once per process).
-///
-/// Uses a dedicated thread + tokio runtime so the client survives after
-/// `start_server(false)` returns (installed app + external `--server`).
-pub fn spawn_client() {
-    use std::sync::Once;
-    use hbb_common::tokio::runtime::Runtime;
-
-    static STARTED: Once = Once::new();
-    STARTED.call_once(|| {
-        log::info!("fbp ws: spawning client in UI process");
-        std::thread::spawn(move || {
-            let rt = match Runtime::new() {
-                Ok(rt) => rt,
-                Err(e) => {
-                    log::error!("fbp ws: failed to create tokio runtime: {e}");
-                    return;
-                }
-            };
-            if let Err(e) = rt.block_on(ws_client_loop()) {
-                log::error!("fbp ws client loop exited: {e}");
-            }
-        });
-    });
 }
 
 // ---------------------------------------------------------------------------
 
 /// JSON snapshot for `main_get_fbp_ws_status()` FFI.
 pub fn status_json() -> String {
+    if ws_runs_here() {
+        return local_status_json();
+    }
+    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+    {
+        if let Ok(Some(json)) = crate::ipc::get_fbp_ws_status() {
+            return json;
+        }
+    }
+    "{}".to_string()
+}
+
+pub fn local_status_json() -> String {
     serde_json::to_string(&current_status()).unwrap_or_else(|_| "{}".to_string())
 }
 
 /// Queue an outbound text frame from Flutter or other Rust code.
 pub fn send_message(text: &str) -> ResultType<()> {
+    if !ws_runs_here() {
+        #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+        {
+            return crate::ipc::send_fbp_ws_message(text);
+        }
+        #[cfg(not(all(feature = "flutter", not(any(target_os = "android", target_os = "ios")))))]
+        {
+            hbb_common::bail!("fbp ws is not connected");
+        }
+    }
+    send_message_local(text)
+}
+
+fn send_message_local(text: &str) -> ResultType<()> {
     let tx = RUNTIME
         .read()
         .map_err(|_| hbb_common::anyhow::anyhow!("fbp ws runtime poisoned"))?
@@ -179,7 +168,7 @@ pub async fn ws_client_loop() -> ResultType<()> {
     let mut backoff = RECONNECT_MIN_SECS;
 
     loop {
-        if !ws_should_run() {
+        if !ws_runs_here() {
             log::info!("fbp ws loop stopping");
             set_status(STATUS_NOT_ACTIVATED, CODE_NONE, "server stopped", None);
             break;
@@ -319,41 +308,13 @@ async fn build_agent_payload(msg_type: &str, request_id: Option<&str>) -> String
     payload.to_string()
 }
 
-/// Same source as Flutter UI: host `--server` via IPC, not in-process lazy_static.
+/// Host server holds the authoritative temporary password.
 async fn fetch_temporary_password() -> Option<String> {
     if !temporary_enabled() {
         return None;
     }
-    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
-    {
-        if let Some(pwd) = query_server_temporary_password().await {
-            return Some(pwd);
-        }
-        let cached = crate::ui_interface::temporary_password();
-        return (!cached.is_empty()).then_some(cached);
-    }
-    #[cfg(not(all(feature = "flutter", not(any(target_os = "android", target_os = "ios")))))]
-    {
-        let pwd = password_security::temporary_password();
-        (!pwd.is_empty()).then_some(pwd)
-    }
-}
-
-#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
-async fn query_server_temporary_password() -> Option<String> {
-    use crate::ipc::{self, Data};
-
-    const TIMEOUT_MS: u64 = 1000;
-    let mut c = ipc::connect(TIMEOUT_MS, "").await.ok()?;
-    c.send(&Data::Config(("temporary-password".to_owned(), None)))
-        .await
-        .ok()?;
-    match c.next_timeout(TIMEOUT_MS).await.ok()? {
-        Some(Data::Config((name, value))) if name == "temporary-password" => {
-            value.filter(|p| !p.is_empty())
-        }
-        _ => None,
-    }
+    let pwd = password_security::temporary_password();
+    (!pwd.is_empty()).then_some(pwd)
 }
 
 // ---------------------------------------------------------------------------
@@ -454,7 +415,7 @@ async fn connect_and_run(url: &str, creds: &Credentials) -> Result<(), SessionEr
             }
         }
 
-        if !ws_should_run() {
+        if !ws_runs_here() {
             log::info!("fbp ws closing");
             let _ = write.send(WsMessage::Close(None)).await;
             break;

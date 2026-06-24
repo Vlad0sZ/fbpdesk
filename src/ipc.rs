@@ -392,6 +392,10 @@ pub enum Data {
     ControlPermissionsRemoteModify(Option<bool>),
     #[cfg(target_os = "windows")]
     FileTransferEnabledState(Option<bool>),
+    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+    FbpWsStatus(Option<String>),
+    #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+    FbpWsSend(String),
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -929,6 +933,22 @@ async fn handle(data: Data, stream: &mut Connection) {
                     .await
             );
         }
+        #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+        Data::FbpWsStatus(None) => {
+            allow_err!(
+                stream
+                    .send(&Data::FbpWsStatus(Some(
+                        crate::fbp::fbp_ws::local_status_json(),
+                    )))
+                    .await
+            );
+        }
+        #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+        Data::FbpWsStatus(Some(_)) => {}
+        #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+        Data::FbpWsSend(msg) => {
+            allow_err!(crate::fbp::fbp_ws::send_message(&msg));
+        }
         _ => {}
     }
 }
@@ -1175,6 +1195,35 @@ pub async fn set_config(name: &str, value: String) -> ResultType<()> {
 
 pub fn update_temporary_password() -> ResultType<()> {
     set_config("temporary-password", "".to_owned())
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+#[tokio::main(flavor = "current_thread")]
+pub async fn get_fbp_ws_status() -> ResultType<Option<String>> {
+    get_fbp_ws_status_async().await
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+async fn get_fbp_ws_status_async() -> ResultType<Option<String>> {
+    let mut c = connect(1000, "").await?;
+    c.send(&Data::FbpWsStatus(None)).await?;
+    if let Some(Data::FbpWsStatus(Some(json))) = c.next_timeout(1000).await? {
+        return Ok(Some(json));
+    }
+    Ok(None)
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+#[tokio::main(flavor = "current_thread")]
+pub async fn send_fbp_ws_message(text: &str) -> ResultType<()> {
+    send_fbp_ws_message_async(text).await
+}
+
+#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
+async fn send_fbp_ws_message_async(text: &str) -> ResultType<()> {
+    let mut c = connect(1000, "").await?;
+    c.send(&Data::FbpWsSend(text.to_owned())).await?;
+    Ok(())
 }
 
 fn apply_permanent_password_storage_and_salt_payload(payload: Option<&str>) -> ResultType<()> {
