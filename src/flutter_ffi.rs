@@ -1154,7 +1154,8 @@ pub fn main_set_env(key: String, value: Option<String>) -> SyncReturn<()> {
 pub fn main_set_local_option(key: String, value: String) {
     let is_texture_render_key = key.eq(config::keys::OPTION_TEXTURE_RENDER);
     let is_d3d_render_key = key.eq(config::keys::OPTION_ALLOW_D3D_RENDER);
-    set_local_option(key, value.clone());
+    set_local_option(key.clone(), value.clone());
+    sync_fbp_activation_to_host_server(&key, &value);
     if is_texture_render_key {
         let session_event = [("v", &value)];
         for session in sessions::get_sessions() {
@@ -1169,6 +1170,34 @@ pub fn main_set_local_option(key: String, value: String) {
         }
     }
 }
+
+/// Push FBP activation keys to the out-of-process `--server` (same IPC path as Wayland tokens).
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+fn sync_fbp_activation_to_host_server(key: &str, value: &str) {
+    const KEYS: &[&str] = &[
+        "device_activation_token",
+        "device_activation_device_id",
+        "custom_websocket_url",
+    ];
+    if !KEYS.contains(&key) {
+        return;
+    }
+    if !crate::is_server_running() || crate::is_server() {
+        return;
+    }
+    let key = key.to_owned();
+    let value = value.to_owned();
+    std::thread::spawn(move || {
+        if value.is_empty() {
+            let _ = crate::ipc::clear_wayland_screencast_restore_token(key);
+        } else {
+            let _ = crate::ipc::set_wayland_screencast_restore_token(key, value);
+        }
+    });
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+fn sync_fbp_activation_to_host_server(_key: &str, _value: &str) {}
 
 // We do use use `main_get_local_option` and `main_set_local_option`.
 //

@@ -594,8 +594,13 @@ pub async fn start_server(is_server: bool, no_server: bool) {
                 if crate::is_server() {
                     log::error!("ipc is occupied by another process, try kill it");
                     std::thread::spawn(stop_main_window_process).join().ok();
+                    std::process::exit(-1);
+                } else {
+                    // Embedded server in the UI process lost the race to `--server`.
+                    // Do not terminate Flutter — fall back to IPC for WS status and host APIs.
+                    log::info!("embedded server ipc unavailable; using external --server");
+                    crate::common::set_server_running(false);
                 }
-                std::process::exit(-1);
             }
         });
         input_service::fix_key_down_timeout_loop();

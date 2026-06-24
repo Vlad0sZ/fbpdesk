@@ -856,7 +856,8 @@ async fn handle(data: Data, stream: &mut Connection) {
                 scrap::wayland::pipewire::close_session();
                 Some("".to_owned())
             } else {
-                None
+                set_local_option(key.clone(), value.clone());
+                Some(value)
             };
             if let Some(v) = v {
                 allow_err!(
@@ -1200,11 +1201,6 @@ pub fn update_temporary_password() -> ResultType<()> {
 #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
 #[tokio::main(flavor = "current_thread")]
 pub async fn get_fbp_ws_status() -> ResultType<Option<String>> {
-    get_fbp_ws_status_async().await
-}
-
-#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
-async fn get_fbp_ws_status_async() -> ResultType<Option<String>> {
     let mut c = connect(1000, "").await?;
     c.send(&Data::FbpWsStatus(None)).await?;
     if let Some(Data::FbpWsStatus(Some(json))) = c.next_timeout(1000).await? {
@@ -1216,11 +1212,6 @@ async fn get_fbp_ws_status_async() -> ResultType<Option<String>> {
 #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
 #[tokio::main(flavor = "current_thread")]
 pub async fn send_fbp_ws_message(text: &str) -> ResultType<()> {
-    send_fbp_ws_message_async(text).await
-}
-
-#[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
-async fn send_fbp_ws_message_async(text: &str) -> ResultType<()> {
     let mut c = connect(1000, "").await?;
     c.send(&Data::FbpWsSend(text.to_owned())).await?;
     Ok(())
@@ -1688,6 +1679,12 @@ pub async fn clear_wayland_screencast_restore_token(key: String) -> ResultType<b
         return Ok(v.is_empty());
     }
     return Ok(false);
+}
+
+#[tokio::main(flavor = "current_thread")]
+pub async fn set_wayland_screencast_restore_token(key: String, value: String) -> ResultType<()> {
+    handle_wayland_screencast_restore_token(key, value).await?;
+    Ok(())
 }
 
 #[cfg(all(

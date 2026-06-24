@@ -51,7 +51,17 @@ class DeviceActivationState extends GetxController {
   void reload() {
     token.value = bind.mainGetLocalOption(key: kCommConfKeyDeviceToken);
     deviceId.value = bind.mainGetLocalOption(key: kCommConfKeyDeviceId);
+    _pushCredentialsToHostServer();
     _syncFromWsStatus();
+  }
+
+  /// Re-send saved credentials so the out-of-process `--server` can connect WS.
+  Future<void> _pushCredentialsToHostServer() async {
+    if (!hasCredentials) return;
+    await bind.mainSetLocalOption(
+        key: kCommConfKeyDeviceToken, value: token.value);
+    await bind.mainSetLocalOption(
+        key: kCommConfKeyDeviceId, value: deviceId.value);
   }
 
   void _syncFromWsStatus() {

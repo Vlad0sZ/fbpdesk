@@ -1,4 +1,7 @@
-//! FBP backend WebSocket client (runs in host server process: `--server` or embedded).
+//! FBP backend WebSocket client (runs in `--server` or embedded host server).
+//!
+//! Installed: WS lives in `--server` and stays up when Flutter UI is closed.
+//! Portable: WS runs in the embedded host server while the app process is running.
 //!
 //! Flutter integration guide: see `src/fbp/FLUTTER_WS.md`.
 
@@ -105,7 +108,7 @@ enum SessionError {
     Other(String),
 }
 
-/// WS runs where host server logic runs (`--server` or embedded server).
+/// WS runs in the host server process (`--server` or embedded), not in Flutter UI.
 #[inline]
 fn ws_runs_here() -> bool {
     crate::is_server() || crate::is_server_running()
@@ -120,28 +123,11 @@ pub fn status_json() -> String {
     }
     #[cfg(all(feature = "flutter", not(any(target_os = "android", target_os = "ios"))))]
     {
-        match crate::ipc::get_fbp_ws_status() {
-            Ok(Some(json)) => return json,
-            Ok(None) => {
-                log::debug!("fbp ws status: ipc returned empty (host server not ready?)");
-            }
-            Err(e) => {
-                log::debug!("fbp ws status: ipc query failed: {e}");
-            }
+        if let Ok(Some(json)) = crate::ipc::get_fbp_ws_status() {
+            return json;
         }
-        return ipc_unreachable_status_json();
     }
-    local_status_json()
-}
-
-fn ipc_unreachable_status_json() -> String {
-    serde_json::to_string(&FbpWsStatus {
-        status: STATUS_ERROR.to_string(),
-        code: CODE_IO_ERROR.to_string(),
-        detail: "host server unreachable".to_string(),
-        connected_since: None,
-    })
-    .unwrap_or_else(|_| "{}".to_string())
+    "{}".to_string()
 }
 
 pub fn local_status_json() -> String {
@@ -179,7 +165,7 @@ pub fn send_message_local(text: &str) -> ResultType<()> {
     }
 }
 
-/// Main loop — spawn from `server.rs` when `is_server == true`.
+/// Main loop — spawned from `server.rs` in the host server.
 pub async fn ws_client_loop() -> ResultType<()> {
     log::info!("fbp ws client loop started");
     let mut backoff = RECONNECT_MIN_SECS;
@@ -545,15 +531,25 @@ fn map_http_error(status: u16, body: &str) -> (&'static str, String) {
     }
 }
 
+/// Same source as `ui_interface::get_video_save_directory` / IPC `get_local_option`.
+fn activation_local_option(key: &str) -> String {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        return LocalConfig::get_option_from_file(key);
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    {
+        crate::get_local_option(key)
+    }
+}
+
 fn load_credentials() -> Option<Credentials> {
-    // Activation is saved from the Flutter UI process; `--server` may have started
-    // earlier (Windows service) with an empty in-memory LocalConfig cache.
-    let token = LocalConfig::get_option_from_file(KEY_DEVICE_TOKEN);
-    let device_id = LocalConfig::get_option_from_file(KEY_DEVICE_ID);
+    let token = activation_local_option(KEY_DEVICE_TOKEN);
+    let device_id = activation_local_option(KEY_DEVICE_ID);
     if token.is_empty() || device_id.is_empty() {
         return None;
     }
-    let mut ws_base_url = LocalConfig::get_option_from_file(KEY_WEBSOCKET_URL);
+    let mut ws_base_url = activation_local_option(KEY_WEBSOCKET_URL);
     if ws_base_url.is_empty() {
         ws_base_url = DEFAULT_WEBSOCKET_URL.to_string();
     }
@@ -663,7 +659,7 @@ fn truncate_log(s: &str) -> String {
     if s.len() <= MAX {
         s.to_string()
     } else {
-        format!("{}…", &s[..MAX])
+        format!("{}...", &s[..MAX])
     }
 }
 
